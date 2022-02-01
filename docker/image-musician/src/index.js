@@ -1,8 +1,5 @@
 const Musician = require('./musician.js');
 const Instruments = require('./instruments.js');
-var udp = require('dgram');
-
-var musician_socket = udp.createSocket('udp4');
 
 var args = process.argv.slice(2);
 
