@@ -8,11 +8,14 @@ class Musician {
     }
     startPlaying() {
         this.playing = setInterval(() => {
-            console.log(this.instrument.sound);
+            this.play()
         }, 1000);
     }
     stopPlaying() {
         clearInterval(this.playing);
+    }
+    play() {
+        console.log(this.instrument.sound);
     }
 }
 
