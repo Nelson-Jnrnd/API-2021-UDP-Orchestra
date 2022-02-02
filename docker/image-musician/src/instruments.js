@@ -1,3 +1,6 @@
+/**
+ * Instruments handled by the musicians
+ */
 const Instruments = Object.freeze({
     PIANO: {name: "piano", sound: "ti-ta-ti"},
     TRUMPET: {name: "trumpet", sound: "pouet"},
@@ -7,11 +10,3 @@ const Instruments = Object.freeze({
 });
 
 module.exports = Instruments;
-
-/*
-
-    PIANO: "ti-ta-ti",
-    TRUMPET: "pouet",
-    FLUTE: "trulu",
-    VIOLIN: "gzi-gzi",
-    DRUM: "boum-boum"*/
