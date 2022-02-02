@@ -1,5 +1,7 @@
 var udp = require('dgram');
 const { v4: uuidv4} = require('uuid');
+const Instruments = require('./instruments.js');
+
 
 class Musician {
 
@@ -8,8 +10,15 @@ class Musician {
     musician_socket;
     id;
     constructor(instrument) {
+        var chosenInstrument = Object.keys(Instruments).find(key => Instruments[key].name == instrument);
+
+        if(!chosenInstrument){
+            console.log("\nError the musician can't play " + instrument);
+            process.exit(0);
+        }
+
         this.musician_socket = udp.createSocket('udp4');
-        this.instrument = instrument;
+        this.instrument = Instruments[chosenInstrument];
         this.startPlaying();
         this.id = uuidv4();
     }
