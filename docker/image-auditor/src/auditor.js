@@ -4,6 +4,7 @@ var Instruments = require('./instruments');
 class Auditor {
     musicians_heard = {};
     udpServer;
+    forgetMusicians;
     constructor(adress, port){
         this.udpServer = udp.createSocket('udp4');
 
@@ -18,9 +19,13 @@ class Auditor {
 
         this.udpServer.on('message', (msg) => {
             const message = JSON.parse(msg)
-            console.log(message);
+            //console.log(message);
             this.addMusician(message.id, message.sound);
         })
+
+        this.forgetMusicians = setInterval(() => {
+            this.removeInactiveMusicians()
+        }, 1000);
     }
 
     addMusician(id, sound){
@@ -41,7 +46,16 @@ class Auditor {
                 "activeLast" : timeOfAddition
             }
         }
-        console.log(this.musicians_heard);
+        
+    }
+
+    removeInactiveMusicians(){
+        Object.keys(this.musicians_heard).forEach(key =>{
+            var musician = this.musicians_heard[key];
+            if(Date.now() - musician.activeLast > 5000){
+                delete this.musicians_heard[musician.uuid];
+            }
+        });
     }
 
 }
