@@ -9,7 +9,10 @@ class Musician {
     playing;
     musician_socket;
     id;
-    constructor(instrument) {
+    address;
+    port;
+    intervalBetweenNotes;
+    constructor(address, port, intervalBetweenNotes, instrument) {
         var chosenInstrument = Object.keys(Instruments).find(key => Instruments[key].name == instrument);
 
         if(!chosenInstrument){
@@ -17,15 +20,19 @@ class Musician {
             process.exit(0);
         }
 
-        this.musician_socket = udp.createSocket('udp4');
+
         this.instrument = Instruments[chosenInstrument];
+        this.port = port;
+        this.address = address;
+        this.intervalBetweenNotes = intervalBetweenNotes;
+        this.musician_socket = udp.createSocket('udp4');
         this.startPlaying();
         this.id = uuidv4();
     }
     startPlaying() {
         this.playing = setInterval(() => {
             this.play()
-        }, 1000);
+        }, this.intervalBetweenNotes);
     }
     stopPlaying() {
         clearInterval(this.playing);
@@ -35,7 +42,7 @@ class Musician {
         var data = JSON.stringify({
             id : this.id,
             sound : this.instrument.sound});
-        this.musician_socket.send(data, 0, data.length, 2205, '230.185.192.108', function(err, byte) {
+        this.musician_socket.send(data, 0, data.length, this.port, this.address, function(err, byte) {
             console.log("sending music");
         });
     }
