@@ -1,84 +1,90 @@
-var udp = require('dgram');
-var Instruments = require('./instruments');
+const udp = require('dgram');
+const Instruments = require('./instruments');
+const moment = require('moment');
 const timeCheckForInactiveMusician = 1000;
 
 /**
- * Simulates someone who listens to the orchestra. 
- * Keep tracks of active musician (if it played a sound during the last 5 seconds) and provides a list of those musicican via a JSON payload sent after a TCP connection on port 2205
+ * Simulates someone who listens to the orchestra.
+ * Keep tracks of active musician (if it played a sound during the last 5 seconds) and provides a list of those
+ * musicicans via a JSON payload sent after a TCP connection on port 2205
  */
 class Auditor {
     /**
      * List of musicians we remember hearing
      */
-    musicians_heard = {};
-    udpServer;
-    forgetMusicians;
-    timeBeforeForgetting;
+    #musicians = new Map();
+    #udpServer = udp.createSocket('udp4');
+    #timeBeforeForgetting;
+
     /**
-     * @param  {string} adress multicast address were we listen to the musicians
+     * @param  {string} address multicast address were we listen to the musicians
      * @param  {number} port port were we listen to the musicians
      * @param  {number} timeBeforeForgetting time it takes before a musician is considered inactive
      */
-    constructor(adress, port, timeBeforeForgetting){
-        this.timeBeforeForgetting = timeBeforeForgetting;
-        this.udpServer = udp.createSocket('udp4');
+    constructor(address, port, timeBeforeForgetting) {
+        this.#timeBeforeForgetting = timeBeforeForgetting;
 
         // Create udp server...
-        this.udpServer.bind(port, () => {
-            this.udpServer.addMembership(adress);
+        this.#udpServer.bind(port, () => {
+            this.#udpServer.addMembership(address);
         });
-        this.udpServer.on('listening', () => {
-            const addr = this.udpServer.address();
+        this.#udpServer.on('listening', () => {
+            const addr = this.#udpServer.address();
             console.log('Listening for UDP Datagrams on ' + addr.address + ' with port ' + addr.port);
         })
-        this.udpServer.on('message', (msg) => {
+        this.#udpServer.on('message', (msg) => {
             const message = JSON.parse(msg);
-            this.addMusician(message.id, message.sound);
+            this.#addMusician(message.id, message.sound);
         })
 
-        this.forgetMusicians = setInterval(() => {
-            this.removeInactiveMusicians()
-        }, timeCheckForInactiveMusician);
+        setInterval(this.#removeInactiveMusicians.bind(this), timeCheckForInactiveMusician);
     }
+
     /**
-     * Adds or update a musician in the list of musician we heard recently
+     * Adds or update a musician in the list of musicians we heard recently
      * @param  {string} id id of the musician to add/update
      * @param  {string} sound sound the musician made when we heard him
      */
-    addMusician(id, sound){
-        var timeOfAddition = Date.now();
-        var instrumentHeard = Object.keys(Instruments).find(key => Instruments[key].sound == sound);
-        
-        if(!instrumentHeard)
+    #addMusician(id, sound) {
+        const timeOfAudition = moment();
+        let instrumentHeard = Object.keys(Instruments).find(key => Instruments[key].sound == sound);
+
+        if (!instrumentHeard)
             instrumentHeard = 'unknown';
 
-        if(this.musicians_heard[id]){
+        if (this.#musicians.has(id)) {
             // Update
-            this.musicians_heard[id].activeLast = timeOfAddition;
-            this.instrument = instrumentHeard;
-        } else{
+            this.#musicians.get(id).activeLast = timeOfAudition;
+        } else {
             // Add
-            this.musicians_heard[id] = {
-                "uuid" : id,
-                "instrument" : instrumentHeard,
-                "activeSince" : timeOfAddition,
-                "activeLast" : timeOfAddition
-            }
+            this.#musicians.set(id, {
+                "instrument": instrumentHeard,
+                "activeSince": timeOfAudition,
+                "activeLast": timeOfAudition
+            });
         }
-        
+
     }
 
     /**
      * Remove inactive musicians from the list of musicians we heard recently
      */
-    removeInactiveMusicians(){
-        console.log(this.musicians_heard);
-        Object.keys(this.musicians_heard).forEach(key =>{
-            var musician = this.musicians_heard[key];
-            if(Date.now() - musician.activeLast > this.timeBeforeForgetting){
-                delete this.musicians_heard[musician.uuid];
+    #removeInactiveMusicians() {
+        console.log(this.#musicians);
+        for (const [id, musician] of this.#musicians.entries()) {
+            if (Date.now() - musician.activeLast > this.#timeBeforeForgetting) {
+                this.#musicians.delete(id);
             }
-        });
+        }
+    }
+
+    getMusicians() {
+        return Array.from(this.#musicians, ([uuid, musician]) =>
+            ({
+                uuid,
+                instrument: musician.instrument,
+                activeSince: musician.activeSince
+            }));
     }
 
 }

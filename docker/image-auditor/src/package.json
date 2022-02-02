@@ -11,5 +11,8 @@
     "url": "github.com/Nelson-Jnrnd/API-2021-UDP-Orchestra"
   },
   "author": "Nelson Jeanrenaud, Damien Maier",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "moment": "^2.29.1"
+  }
 }
