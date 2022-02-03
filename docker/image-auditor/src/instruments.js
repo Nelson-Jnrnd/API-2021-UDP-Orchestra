@@ -1,17 +1,14 @@
-const Instruments = Object.freeze({
-    PIANO: {name: "piano", sound: "ti-ta-ti"},
-    TRUMPET: {name: "trumpet", sound: "pouet"},
-    FLUTE: {name: "flute", sound: "trulu"},
-    VIOLIN: {name: "violin", sound: "gzi-gzi"},
-    DRUM: {name: "drum", sound: "boum-boum"}
-});
+/**
+ * Instruments handled by the musicians
+ */
+const instruments = new Map([
+    ["piano", "ti-ta-ti"],
+    ["trumpet", "pouet"],
+    ["flute", "trulu"],
+    ["violin", "gzi-gzi"],
+    ["drum", "boum-boum"],
 
-module.exports = Instruments;
 
-/*
+]);
 
-    PIANO: "ti-ta-ti",
-    TRUMPET: "pouet",
-    FLUTE: "trulu",
-    VIOLIN: "gzi-gzi",
-    DRUM: "boum-boum"*/
+module.exports = instruments;

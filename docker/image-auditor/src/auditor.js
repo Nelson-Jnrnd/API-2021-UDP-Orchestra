@@ -1,7 +1,7 @@
 const udp = require('dgram');
-const Instruments = require('./instruments');
+const instruments = require('./instruments');
 const moment = require('moment');
-const timeCheckForInactiveMusician = 1000;
+const INTERVAL_CHECK_FOR_INACTIVE_MUSICIANS = 1000;
 
 /**
  * Simulates someone who listens to the orchestra.
@@ -25,44 +25,51 @@ class Auditor {
         this.#timeBeforeForgetting = timeBeforeForgetting;
 
         // Create udp server...
+        this.#udpServer.on('listening', () => {
+            console.log('Listening for UDP Datagrams on ' + address + ' with port ' + port);
+        })
+        this.#udpServer.on('message', (buffer) => {
+            const jsonText = buffer.toString();
+            console.log("received : ", jsonText);
+            const message = JSON.parse(jsonText);
+            this.#addMusician(message.uuid, message.sound);
+        })
         this.#udpServer.bind(port, () => {
             this.#udpServer.addMembership(address);
         });
-        this.#udpServer.on('listening', () => {
-            const addr = this.#udpServer.address();
-            console.log('Listening for UDP Datagrams on ' + addr.address + ' with port ' + addr.port);
-        })
-        this.#udpServer.on('message', (msg) => {
-            const message = JSON.parse(msg);
-            this.#addMusician(message.id, message.sound);
-        })
 
-        setInterval(this.#removeInactiveMusicians.bind(this), timeCheckForInactiveMusician);
+        setInterval(this.#removeInactiveMusicians.bind(this), INTERVAL_CHECK_FOR_INACTIVE_MUSICIANS);
     }
 
     /**
      * Adds or update a musician in the list of musicians we heard recently
      * @param  {string} id id of the musician to add/update
-     * @param  {string} sound sound the musician made when we heard him
+     * @param  {string} heardSound sound the musician made when we heard him
      */
-    #addMusician(id, sound) {
+    #addMusician(id, heardSound) {
         const timeOfAudition = moment();
-        let instrumentHeard = Object.keys(Instruments).find(key => Instruments[key].sound == sound);
-
-        if (!instrumentHeard)
-            instrumentHeard = 'unknown';
-
-        if (this.#musicians.has(id)) {
-            // Update
-            this.#musicians.get(id).activeLast = timeOfAudition;
-        } else {
-            // Add
-            this.#musicians.set(id, {
-                "instrument": instrumentHeard,
-                "activeSince": timeOfAudition,
-                "activeLast": timeOfAudition
-            });
+        let heardInstrument;
+        for (let [instrument, sound] of instruments.entries()) {
+            if (heardSound === sound) {
+                heardInstrument = instrument;
+            }
         }
+        if (heardInstrument === undefined) {
+            console.log("Error unrecognized sound :", heardSound);
+        } else {
+            if (this.#musicians.has(id)) {
+                // Update
+                this.#musicians.get(id).activeLast = timeOfAudition;
+            } else {
+                // Add
+                this.#musicians.set(id, {
+                    "instrument": heardInstrument,
+                    "activeSince": timeOfAudition,
+                    "activeLast": timeOfAudition
+                });
+            }
+        }
+
 
     }
 
@@ -70,7 +77,6 @@ class Auditor {
      * Remove inactive musicians from the list of musicians we heard recently
      */
     #removeInactiveMusicians() {
-        console.log(this.#musicians);
         for (const [id, musician] of this.#musicians.entries()) {
             if (Date.now() - musician.activeLast > this.#timeBeforeForgetting) {
                 this.#musicians.delete(id);
@@ -78,6 +84,9 @@ class Auditor {
         }
     }
 
+    /**
+     * Returns information about the active musicians
+     */
     getMusicians() {
         return Array.from(this.#musicians, ([uuid, musician]) =>
             ({
